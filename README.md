@@ -1,61 +1,269 @@
-FreeCAD-GDT
-===========
+# Polymarket Reverse Arbitrage Bot
 
-[![forthebadge made-with-python](http://ForTheBadge.com/images/badges/made-with-python.svg)](https://www.python.org/)
+TypeScript automation for my Polymarket reverse strategy on **15-minute BTC/ETH Up or Down** markets.
 
-Geometric Dimensioning and Tolerancing (GD&T) workbench for FreeCAD
+---
 
-Please see [forum thread](https://forum.freecadweb.org/viewtopic.php?f=10&t=22072) to discuss or report issues regarding this Addon with it's author and the FreeCAD community.
+## My Polymarket account
+<img width="815" height="291" alt="image" src="https://github.com/user-attachments/assets/0971eb6d-de7e-4f9a-82a1-14a2163db209" />
 
-![screenshot](https://forum.freecadweb.org/download/file.php?id=36916)
 
-Abstract
-----------
+| | |
+|---|---|
+| **Profile** | [@odahoa](https://polymarket.com/@odahoa?tab=activity) |
+| **Username** | `odahoa` |
+| **Proxy wallet** | `0xe2511c9e41c5e762887e538b1d6e7221807aa237` |
+| **Markets** | `btc-updown-15m`, `eth-updown-15m` |
 
-The project is aimed at the development of a labeling software module for Geometric Dimensioning and Tolerancing (GD&T) in 2D and 3D technical drawings. The main contributions of this software are:
+All activity, positions, and PnL live on my profile:  
+**https://polymarket.com/@odahoa?tab=activity**
 
--	Allows the GD&T information to be added to the design itself, thus linking design, manufacturing and quality specifications.
--	Implements the ISO16792 standard for both 2D and 3D parts.
--	Incorporates a homogeneous graphical interface and integrated with the technical design tools and 3D.
--	There is no precedent developed as free software.
+This bot trades **from that account** — it automates what I already do manually. It is not copy trading and does not watch any other wallet.
 
-The implementation of the software is done as a module of the parametric modeling free software application [FreeCAD](http://freecadweb.org). This is a multiplatform project since the development of the module is done with Python and FreeCAD has compilations for multiple Operating Systems.
+---
 
-Installing
-----------
+## Overview
 
-Download and install your corresponding version of FreeCAD from [wiki Download page](http://www.freecadweb.org/wiki/Download) and either install
-- automaticallu using the [FreeCAD Add-on Manager](https://github.com/FreeCAD/FreeCAD-addons) (bundled in to 0.17 dev version)
-- manually by copying the FreeCAD-GDT folder to the Mod sub-directory of the FreeCAD application.
+Polymarket runs 15-minute windows like:
 
-### Requirements
+> **Bitcoin Up or Down — 1:45PM–2:00PM ET**
 
-- Coin3D (4.0+) It is recommended to have Coin version 4.0 or higher installed but also works with version 3.0 but with some visual changes.
+Each window has two tokens:
 
-Operation of the module
-----------
+| Token | Wins when |
+|-------|-----------|
+| **Up** | Price at end ≥ price at start |
+| **Down** | Price at end < price at start |
 
-When doing a GD&T labeling, the first thing to do is to define an annotation plane on which the annotations we make will be painted. To do this, first select a face of the piece and click the command on the toolbar add annotation plane. This will define a plane on that face and we can also apply an offset to place our annotation plane to the height we want in parallel on the selected face. Defining an annotation plane.
+Winning tokens pay **$1.00**. Losing tokens pay **$0.00**.
 
-The next step we must do is to create a datum reference or a geometric tolerance. Although it is important to note that if the first thing to be created is a geometric tolerance, it can not contain any datum system since there will not be any created yet. However, this can be added later by modifying the geometric tolerance from the inventory of GD&T elements.
+My strategy — the **reverse bot** — posts limit **BUY** orders on **both sides** every window:
 
-In any case, when creating a datum reference or a geometric characteristic, the user must choose some parameters that will define the element to be created. These include the annotation plane on which the annotation will be represented. Everything followed should select a point on the plane. Point on which will start the representation of the frame that will encapsulate the data of our annotation.
+1. **Cheap reversal side (7–10¢)** on the underdog outcome  
+2. **Expensive hedge side (90–95¢)** on the favorite outcome  
 
-In addition, at any time, you can create a datum system with the datum reference elements that have been created and this system can be applied to the geometric tolerances that we consider appropriate. This will indicate that said geometric tolerance will be applied to the face or faces corresponding to the annotation with respect to the datum references that make up the associated datum system.
+That is the same pattern visible on my [activity tab](https://polymarket.com/@odahoa?tab=activity): round limit prices (7¢, 8¢, 10¢ … 95¢), 20–90 shares per fill, no sells — hold to resolution.
 
-Subsequently, if you want to apply a datum reference or a geometric tolerance to a face or faces that already have an annotation associated with it, this module will automatically detect which annotation is and it will add the new element to that annotation.
+---
 
-Therefore, the running of our module could be summarized in that we have to add geometric tolerances to our design but in order to carry this out, we would first have to create different elements like annotation planes to place our annotation in the desired place, or Datum references and datum systems to provide necessary information to our geometric tolerances. So we have to create different elements until we have our piece completely labeled with all the geometric tolerances that we need to indicate.
+## Why "reverse"?
 
-Commands
-----------
+Early in a window, price often trends one way:
 
-- ![Add Annotation Plane](https://forum.freecadweb.org/download/file.php?id=36932) Add Annotation Plane
-- ![Add Datum Feature](https://forum.freecadweb.org/download/file.php?id=36933) Add Datum Feature
-- ![Add Annotation System](https://forum.freecadweb.org/download/file.php?id=36934) Add Annotation System
-- ![Add Geometric Tolerance](https://forum.freecadweb.org/download/file.php?id=36935) Add Geometric Tolerance
-- ![Inventory of the elements of GD&T](https://forum.freecadweb.org/download/file.php?id=36936) Inventory of the elements of GD&T
+```
+BTC pumps in first 10 minutes
+  → Up token   ~90–97¢  (favorite)
+  → Down token ~3–10¢   (underdog)
+```
 
-----
+The crowd prices the underdog as nearly dead. The **reverse bet** is: *it flips before the window closes*.
 
-### :scroll: License ? [![GitHub license](https://img.shields.io/github/license/juanvanyo/FreeCAD-GDT.svg)](https://github.com/juanvanyo/FreeCAD-GDT/blob/master/LICENSE)
+| Leg | Outcome | Entry | If it wins |
+|-----|---------|-------|------------|
+| **Reverse** | Underdog | 7–10¢ | ~10–14× |
+| **Hedge** | Favorite | 90–95¢ | ~5–11% |
+
+Only one side pays $1 per window. I run both legs because:
+
+- Cheap fills are rare but pay huge when they hit.
+- Hedge fills are smaller profit but hit more often.
+- Over hundreds of windows, a few reversals cover many losses.
+
+---
+
+## How I trade (manual → bot)
+
+From my account history:
+
+| Pattern | Detail |
+|---------|--------|
+| Markets | BTC & ETH 15m Up/Down only |
+| Order type | Limit BUY only — never sell |
+| Cheap leg | Fills at 7–10¢ (sometimes 5–25¢) on underdog |
+| Hedge leg | Fills at 90–95¢ on favorite |
+| Both sides | Same window — e.g. Down @ 95¢ and Up @ 15¢ |
+| Size | 20–90 shares per order |
+
+The bot replaces hand-placing every limit order each window.
+
+---
+
+## Bot logic
+
+Every **5 seconds** (configurable):
+
+```
+1. Scan active btc-updown-15m / eth-updown-15m markets
+2. Load Up & Down order books (CLOB API)
+3. Underdog  = outcome with lower best ask
+4. Favorite  = the other outcome
+5. Post limit BUYs on underdog  @ 7¢, 8¢, 9¢, 10¢
+6. Post limit BUYs on favorite  @ 90¢–95¢  (if hedge enabled)
+7. Skip price levels already posted this session
+```
+
+### Cheap leg — underdog @ 7–10¢
+
+```
+Down best ask = 4¢  →  bot bids 7¢, 8¢, 9¢, 10¢ on Down
+```
+
+If Down reverses and wins:
+
+```
+90 shares × 8¢  =  $7.20 in
+90 shares × $1  =  $90.00 out   →  +$82.80 (~1,150%)
+```
+
+### Hedge leg — favorite @ 90–95¢
+
+```
+Up best ask = 97¢  →  bot bids 90¢–95¢ on Up
+```
+
+If Up holds and wins:
+
+```
+52 shares × 95¢  =  $49.40 in
+52 shares × $1   =  $52.00 out  →  +$2.60 (~5%)
+```
+
+---
+
+## Example window
+
+**Market:** Bitcoin Up or Down — 1:45–2:00 PM ET  
+**BTC pumped early** → Up favored, Down cheap
+
+| Token | Book | Bot posts |
+|-------|------|-----------|
+| Up (favorite) | ask 97¢ | BUY limits @ 90–95¢ |
+| Down (underdog) | ask 4¢ | BUY limits @ 7–10¢ |
+
+| Result | Cheap leg | Hedge leg |
+|--------|-----------|-----------|
+| Up wins | Down → $0 | Up → small profit |
+| Down reverses | Down → big profit | Up → $0 |
+
+---
+
+## Return table
+
+| Buy price | Payout | Return if win |
+|-----------|--------|---------------|
+| 7¢ | $1.00 | +1,329% |
+| 8¢ | $1.00 | +1,150% |
+| 9¢ | $1.00 | +1,011% |
+| 10¢ | $1.00 | +900% |
+| 95¢ | $1.00 | +5% |
+
+Most 7–10¢ bets go to zero. Edge comes from occasional reversals at high multiples.
+
+---
+
+## Quick start
+
+```bash
+git clone https://github.com/KadamParikhe/polymarket-reverse-arbitrage-bot
+cd reverse-bot
+npm install
+cp .env.example .env
+npm start          # dry-run: logs orders, no submission
+```
+
+### Go live on @odahoa
+
+```env
+DRY_RUN=false
+PRIVATE_KEY=0x...                                           # account signing key
+FUNDER_ADDRESS=0xe2511c9e41c5e762887e538b1d6e7221807aa237   # @odahoa proxy wallet
+SIGNATURE_TYPE=2
+```
+
+| `SIGNATURE_TYPE` | Use for |
+|------------------|---------|
+| `0` | EOA / MetaMask |
+| `2` | Gnosis Safe proxy *(typical Polymarket account)* |
+| `3` | POLY_1271 deposit wallet |
+
+---
+
+## Config
+
+### Strategy
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CHEAP_BUY_MIN` | `0.07` | Low end of reversal bids |
+| `CHEAP_BUY_MAX` | `0.10` | High end of reversal bids |
+| `CHEAP_ORDER_USDC` | `10` | USDC per cheap limit order |
+| `ENABLE_EXPENSIVE_HEDGE` | `true` | Post 90–95¢ favorite bids |
+| `EXPENSIVE_BUY_MIN` | `0.90` | Low end of hedge bids |
+| `EXPENSIVE_BUY_MAX` | `0.95` | High end of hedge bids |
+| `EXPENSIVE_ORDER_USDC` | `50` | USDC per hedge limit order |
+| `MAX_SHARES_PER_ORDER` | `90` | Max shares per order |
+
+### Markets & timing
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `MARKET_SLUG_PREFIXES` | `btc-updown-15m,eth-updown-15m` | Markets to scan |
+| `POLL_INTERVAL_MS` | `5000` | Scan interval |
+| `MINUTES_BEFORE_CLOSE_MIN` | `0` | Start trading N min into window |
+| `MINUTES_BEFORE_CLOSE_MAX` | `15` | Stop trading N min before close |
+
+Trade only late window (when cheap tokens show up):
+
+```env
+MINUTES_BEFORE_CLOSE_MIN=3
+MINUTES_BEFORE_CLOSE_MAX=12
+```
+
+### Safety
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DRY_RUN` | `true` | Log only — no real orders |
+
+---
+
+## Project layout
+
+```
+reverse-bot/
+├── src/
+│   ├── index.ts           # main loop
+│   ├── market-scanner.ts  # active 15m markets + books
+│   ├── strategy.ts        # underdog/favorite + limit prices
+│   ├── trader.ts          # CLOB order submission
+│   └── config.ts
+├── .env.example
+└── package.json
+```
+
+---
+
+## Commands
+
+```bash
+npm start      # run bot
+npm run dev    # run with hot reload
+npm run build  # compile TypeScript
+```
+
+---
+
+## Risks
+
+- **Most cheap bids lose.** 7–10¢ tokens frequently expire worthless.
+- **Limits may not fill.** Bidding 7¢ when ask is 4¢ waits for sellers.
+- **Both legs can't both win.** One side always goes to $0.
+- **Real money.** Test with `DRY_RUN=true` first.
+
+---
+
+## Links
+
+- My profile: https://polymarket.com/@odahoa  
+- My activity: https://polymarket.com/@odahoa?tab=activity  
+- Polymarket settings: https://polymarket.com/settings  
