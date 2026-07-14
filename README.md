@@ -164,7 +164,7 @@ Most 7–10¢ bets go to zero. Edge comes from occasional reversals at high mult
 ## Quick start
 
 ```bash
-git clone https://github.com/KadamParikhe/polymarket-reverse-arbitrage-bot
+git clone https://github.com/KadamParikhe/polymarket-arbitrage-bot
 cd reverse-bot
 npm install
 cp .env.example .env
